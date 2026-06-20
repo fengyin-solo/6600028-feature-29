@@ -89,7 +89,7 @@ export class SPHEngine {
   }
 
   initParticles(config: 'dam' | 'drop' | 'fountain' | 'wave', count?: number) {
-    const n = count ?? this.particles.length || 800
+    const n = count ?? (this.particles.length || 800)
     this.particles = []
 
     switch (config) {

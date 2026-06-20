@@ -15,6 +15,22 @@ export const useFluidStore = defineStore('fluid', {
     _lastTime: 0,
     _fpsAccum: 0,
     _fpsFrames: 0,
+    isStepping: false,
+    stepFlashActive: false,
+    stepStats: {
+      avgDisplacement: 0,
+      maxDisplacement: 0,
+      avgVelocityChange: 0,
+      densityChange: 0,
+      stepNumber: 0,
+    } as {
+      avgDisplacement: number
+      maxDisplacement: number
+      avgVelocityChange: number
+      densityChange: number
+      stepNumber: number
+    },
+    _prevParticleSnapshot: [] as Array<{ x: number; y: number; vx: number; vy: number; density: number }>,
   }),
   getters: {
     particleArray: (state) => state.engine?.particles ?? [],
@@ -40,6 +56,16 @@ export const useFluidStore = defineStore('fluid', {
       this.engine.initParticles(this.currentPreset.initialConfig, this.particleCount)
       this.frameCount = 0
       this.fps = 0
+      this.stepStats = {
+        avgDisplacement: 0,
+        maxDisplacement: 0,
+        avgVelocityChange: 0,
+        densityChange: 0,
+        stepNumber: 0,
+      }
+      this._prevParticleSnapshot = []
+      this.stepFlashActive = false
+      this.isStepping = false
     },
     start() {
       if (this.isRunning || !this.engine) return
@@ -81,11 +107,64 @@ export const useFluidStore = defineStore('fluid', {
     },
     stepOnce() {
       if (!this.engine || this.isRunning) return
+
+      this.isStepping = true
+
+      const particles = this.engine.particles
+      this._prevParticleSnapshot = particles.map(p => ({
+        x: p.x,
+        y: p.y,
+        vx: p.vx,
+        vy: p.vy,
+        density: p.density,
+      }))
+
+      const prevAvgDensity = particles.reduce((s, p) => s + p.density, 0) / particles.length
+
       const subSteps = 3
       for (let s = 0; s < subSteps; s++) {
         this.engine.step()
       }
       this.frameCount++
+
+      let totalDisp = 0
+      let maxDisp = 0
+      let totalVelChange = 0
+      for (let i = 0; i < particles.length; i++) {
+        const prev = this._prevParticleSnapshot[i]
+        const curr = particles[i]
+        const dx = curr.x - prev.x
+        const dy = curr.y - prev.y
+        const disp = Math.sqrt(dx * dx + dy * dy)
+        totalDisp += disp
+        if (disp > maxDisp) maxDisp = disp
+
+        const prevSpeed = Math.sqrt(prev.vx * prev.vx + prev.vy * prev.vy)
+        const currSpeed = Math.sqrt(curr.vx * curr.vx + curr.vy * curr.vy)
+        totalVelChange += Math.abs(currSpeed - prevSpeed)
+      }
+
+      const newAvgDensity = particles.reduce((s, p) => s + p.density, 0) / particles.length
+
+      this.stepStats = {
+        avgDisplacement: totalDisp / particles.length,
+        maxDisplacement: maxDisp,
+        avgVelocityChange: totalVelChange / particles.length,
+        densityChange: newAvgDensity - prevAvgDensity,
+        stepNumber: this.frameCount,
+      }
+
+      this.stepFlashActive = true
+      setTimeout(() => {
+        this.stepFlashActive = false
+      }, 300)
+
+      setTimeout(() => {
+        this.isStepping = false
+      }, 100)
+    },
+    clearStepFlash() {
+      this.stepFlashActive = false
     },
     updateParam(key: keyof SimParams, value: number) {
       this.params[key] = value

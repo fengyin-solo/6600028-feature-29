@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useFluidStore } from '../store/fluid'
 
 const store = useFluidStore()
@@ -7,6 +7,10 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 
 const W = 800
 const H = 500
+
+const showTrails = computed(() => {
+  return store.stepFlashActive && store._prevParticleSnapshot.length > 0
+})
 
 function velocityToColor(speed: number): string {
   // Blue (slow) -> Green (medium) -> Red (fast)
@@ -30,6 +34,17 @@ function draw() {
   ctx.strokeStyle = '#475569'
   ctx.lineWidth = 3
   ctx.strokeRect(2, 2, W - 4, H - 4)
+
+  // Step flash border
+  if (store.stepFlashActive) {
+    const gradient = ctx.createLinearGradient(0, 0, W, H)
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.8)')
+    gradient.addColorStop(0.5, 'rgba(147, 51, 234, 0.8)')
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.8)')
+    ctx.strokeStyle = gradient
+    ctx.lineWidth = 4
+    ctx.strokeRect(0, 0, W, H)
+  }
 
   // Draw grid (faint)
   ctx.strokeStyle = '#1e293b'
@@ -84,6 +99,40 @@ function draw() {
     ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
     ctx.fillStyle = color
     ctx.fill()
+  }
+
+  // Draw motion trails for step
+  if (showTrails.value) {
+    const prevSnapshots = store._prevParticleSnapshot
+    const trailCount = Math.min(particles.length, prevSnapshots.length)
+    for (let i = 0; i < trailCount; i++) {
+      const prev = prevSnapshots[i]
+      const curr = particles[i]
+      const dx = curr.x - prev.x
+      const dy = curr.y - prev.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist > 0.5) {
+        const speed = Math.sqrt(curr.vx * curr.vx + curr.vy * curr.vy)
+        const gradient = ctx.createLinearGradient(prev.x, prev.y, curr.x, curr.y)
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
+        gradient.addColorStop(0.5, velocityToColor(speed).replace('hsl', 'hsla').replace(')', ', 0.6)'))
+        gradient.addColorStop(1, velocityToColor(speed).replace('hsl', 'hsla').replace(')', ', 0.9)'))
+
+        ctx.beginPath()
+        ctx.moveTo(prev.x, prev.y)
+        ctx.lineTo(curr.x, curr.y)
+        ctx.strokeStyle = gradient
+        ctx.lineWidth = 2
+        ctx.stroke()
+
+        // Draw previous position marker
+        ctx.beginPath()
+        ctx.arc(prev.x, prev.y, 1.5, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+        ctx.fill()
+      }
+    }
   }
 
   // FPS overlay

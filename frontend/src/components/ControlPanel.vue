@@ -83,8 +83,13 @@ function onDt(e: Event) {
       <button
         @click="stepOnce"
         :disabled="store.isRunning"
-        class="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-gray-200 py-2 rounded text-sm transition"
+        class="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-gray-200 py-2 rounded text-sm transition relative overflow-hidden"
+        :class="{ 'step-btn-pulse': store.isStepping }"
       >
+        <span
+          v-if="store.stepFlashActive"
+          class="absolute inset-0 bg-blue-400 opacity-50 step-flash"
+        ></span>
         单步
       </button>
     </div>
@@ -161,7 +166,7 @@ function onDt(e: Event) {
     </div>
 
     <!-- Stats -->
-    <div class="mt-auto pt-3 border-t border-gray-700">
+    <div class="pt-3 border-t border-gray-700">
       <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">运行状态</h3>
       <div class="grid grid-cols-2 gap-2 text-xs">
         <div class="bg-gray-900 rounded px-2 py-1.5">
@@ -181,6 +186,59 @@ function onDt(e: Event) {
           <p class="text-red-400 font-mono text-sm">{{ store.maxVelocity.toFixed(1) }}</p>
         </div>
       </div>
+    </div>
+
+    <!-- Step Stats -->
+    <div
+      class="pt-3 border-t border-gray-700 transition-all duration-300"
+      :class="{ 'step-stats-highlight': store.stepFlashActive }"
+    >
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+        <span>单步变化</span>
+        <span
+          v-if="store.stepStats.stepNumber > 0"
+          class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded"
+        >
+          #{{ store.stepStats.stepNumber }}
+        </span>
+      </h3>
+      <div class="space-y-2 text-xs">
+        <div class="flex justify-between items-center bg-gray-900 rounded px-2 py-1.5">
+          <span class="text-gray-500">平均位移</span>
+          <span class="text-cyan-400 font-mono text-sm step-value" :key="'disp-' + store.stepStats.stepNumber">
+            {{ store.stepStats.avgDisplacement.toFixed(2) }}
+          </span>
+        </div>
+        <div class="flex justify-between items-center bg-gray-900 rounded px-2 py-1.5">
+          <span class="text-gray-500">最大位移</span>
+          <span class="text-cyan-400 font-mono text-sm step-value" :key="'maxdisp-' + store.stepStats.stepNumber">
+            {{ store.stepStats.maxDisplacement.toFixed(2) }}
+          </span>
+        </div>
+        <div class="flex justify-between items-center bg-gray-900 rounded px-2 py-1.5">
+          <span class="text-gray-500">速度变化</span>
+          <span
+            class="font-mono text-sm step-value"
+            :class="store.stepStats.avgVelocityChange >= 0 ? 'text-green-400' : 'text-red-400'"
+            :key="'vel-' + store.stepStats.stepNumber"
+          >
+            {{ store.stepStats.avgVelocityChange >= 0 ? '+' : '' }}{{ store.stepStats.avgVelocityChange.toFixed(2) }}
+          </span>
+        </div>
+        <div class="flex justify-between items-center bg-gray-900 rounded px-2 py-1.5">
+          <span class="text-gray-500">密度变化</span>
+          <span
+            class="font-mono text-sm step-value"
+            :class="store.stepStats.densityChange >= 0 ? 'text-yellow-400' : 'text-orange-400'"
+            :key="'dens-' + store.stepStats.stepNumber"
+          >
+            {{ store.stepStats.densityChange >= 0 ? '+' : '' }}{{ store.stepStats.densityChange.toFixed(1) }}
+          </span>
+        </div>
+      </div>
+      <p v-if="store.stepStats.stepNumber === 0" class="text-[11px] text-gray-600 mt-2 text-center">
+        点击「单步」按钮查看详细变化
+      </p>
     </div>
   </div>
 </template>

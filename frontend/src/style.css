@@ -1,2 +1,46 @@
 @tailwind base; @tailwind components; @tailwind utilities;
 body { margin: 0; background: #030712; color: white; font-family: system-ui, sans-serif; }
+
+/* Step button flash animation */
+.step-flash {
+  animation: stepFlash 0.3s ease-out forwards;
+}
+
+@keyframes stepFlash {
+  0% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 0.5; }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+/* Step button pulse animation */
+.step-btn-pulse {
+  animation: stepPulse 0.15s ease-out;
+}
+
+@keyframes stepPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Step value change animation */
+.step-value {
+  animation: valuePop 0.4s ease-out;
+}
+
+@keyframes valuePop {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Step stats highlight */
+.step-stats-highlight {
+  animation: statsHighlight 0.5s ease-out;
+}
+
+@keyframes statsHighlight {
+  0% { background-color: rgba(59, 130, 246, 0.1); }
+  50% { background-color: rgba(59, 130, 246, 0.2); }
+  100% { background-color: transparent; }
+}
